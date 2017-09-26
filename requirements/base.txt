@@ -61,4 +61,4 @@ pandas==0.20.3
 statsmodels==0.8.0
 
 Quandl==3.2.0
-poloniex==0.4.6
+
