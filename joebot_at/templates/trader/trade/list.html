@@ -1,0 +1,28 @@
+{% extends "base.html" %} {% load i18n %}
+
+{% block content %}
+  {% trans 'Trades' %} <br/>
+
+  <div class="row">
+    <table width="100%">
+      {% for object in object_list %}
+        <tr>
+          <td>{{ object.created_at|date }}</td>
+          <td>{{ object.market }}</td>
+          <td>{{ object.type }}</td>
+          <td>{{ object.price }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td>No records.</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="row mt-5">
+    Balance: {{ btc_trader.balance }}
+  </div>
+
+{% endblock %}
+
