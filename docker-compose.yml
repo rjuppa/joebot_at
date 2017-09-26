@@ -1,0 +1,12 @@
+dbdata:
+  image: radekj/postgresql:9.6
+  volumes:
+    - /var/lib/postgresql
+  command: "true"
+ 
+db:
+  image: radekj/postgresql:9.6
+  volumes_from:
+    - dbdata
+  ports:
+    - "5555:5432"
