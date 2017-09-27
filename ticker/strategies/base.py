@@ -16,6 +16,7 @@ import matplotlib.dates as mdates
 from pandas.core.dtypes.common import PeriodDtype
 
 from trader.btc_trader import BTCTrader
+from pprint import pprint as pp
 
 
 def convert_ts(ts):
@@ -55,33 +56,47 @@ class BaseStrategy(object):
     def read_data(self, dt_from, days=1):
         """ Load dataset from internet """
         self.ts_current = int(dt_from.timestamp())
-        self.ts_start = self.ts_current - (self.prices_in_a_day * self.sec_in_a_price * days)     # 10d
+        self.ts_start = self.ts_current - (self.prices_in_a_day * self.sec_in_a_price * days)
+        # read data aggregated by 5min
         url = '{}&currencyPair={}&start={}&end={}&period=300'.format(self.url,
                                                                      self.market,
                                                                      self.ts_start, self.ts_current)
         response = requests.get(url)
         data = json.loads(response.content)  # data
+        if not isinstance(data, list):
+            print(url)
+            print('Http Status:{} - {}'.format(response.status_code, response.content[:80]))
+            raise Exception('HTTP ERROR')
+
         dates = [convert_ts(row['date']) for row in data]   # index
         cc = pd.DataFrame(data, index=dates, columns=['date', 'high', 'low', 'open',
-                                                                    'close', 'volume', 'quoteVolume',
-                                                                    'weightedAverage'])
+                                                      'close', 'volume', 'quoteVolume',
+                                                      'weightedAverage'])
         cc[['high', 'low', 'open', 'close', 'volume', 'quoteVolume', 'weightedAverage']].apply(pd.to_numeric)
         cc['close'] = cc['close'].astype(np.float64)  # force type float64
         self.market_data = cc[['close', 'date']].copy()
         return self.market_data
 
-    def calculate_signal(self, is_print=False):
+    def prepare_data(self):
+        """ To Override - Calculating all helper data columns"""
+        pass
+
+    def calculate_all_signals(self, is_print=False):
         """
         Calculating all helper data columns
         Mostly based on exponential weighted mean and other rolling functions
         EMA and difference
         """
+        self.prepare_data()
         if is_print:
             self._print_header()
             self.do_print = True
 
         self.market_data['signal'] = self.market_data.apply(self.get_signal, axis=1)
         return self.market_data
+
+    def calculate_last_price_only(self):
+        self.prepare_data()
 
     def execute_buy(self, row):
         price = Decimal(str(row.close))
@@ -128,23 +143,46 @@ class BaseStrategy(object):
         """ Handle SELL conditions """
         return 0     # TODO
 
+    @property
+    def can_buy(self):
+        return self.available_btc > 0   # we have btc
+
+    @property
+    def can_sell(self):
+        return self.available_coin > 0  # we have coins
+
     def get_signal(self, row):
-        """ Processes signals """
-        #print(row)
+        """ Processes signal for a row """
         self.available_btc = self.trader.get_balance_btc()
         self.available_coin = self.trader.get_balance_coin()
         # BUY
-        if self.available_btc > 0:  # have money
+        if self.can_buy:
             return self.get_signal_buy(row)
 
         # SELL
-        if self.available_coin > 0:
+        if self.can_sell:
             return self.get_signal_sell(row)
 
         return 0
 
+    def notify(self, type, row):
+        price = '{:4.8f}'.format(row['close'].values[0])
+        deep = row['deep'].values[0]
+        date = datetime.fromtimestamp(int(row['date'].values[0])).strftime('%Y-%m-%d %H:%M:%S')
+        if type == 'NOTHING':
+            self.write_log('{}|{}|{} |{}%'.format(date, self.trader.market, price, deep))
+        else:
+            status = '{} {}'.format(self.available_coin, self.available_coin)
+            self.write_log('{}|{}|{} - {} SIGNAL - STATUS: {}'.format(date, self.trader.market,
+                                                                      price, type, status))
+
+    def write_log(self, line):
+        hs = open('logs/{}.txt'.format(self.market), "a")
+        hs.write(line + '\n')
+        hs.close()
+
     def draw_line(self):
-        pass
+            pass
 
     def draw_graph(self, from_symbol='BTC', to_symbol='BCH'):
         fig, ax = plt.subplots()
@@ -201,7 +239,7 @@ class BaseStrategy(object):
         self.read_data(dt_from, days)
         print('read_data.. done ')
         self.bad_buy_limit = 0.97
-        self.calculate_signal(True)
+        self.calculate_all_signals(True)
         self.draw_graph()
 
 

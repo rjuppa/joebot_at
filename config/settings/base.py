@@ -282,13 +282,13 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BEAT_SCHEDULE = {
-            'get_ticker_task': {
-                'task': 'ticker.tasks.get_ticker_task',
-                'schedule': timedelta(seconds=60),
-            },
-            'process_data_task': {
-                'task': 'ticker.tasks.process_data_task',
-                'schedule': timedelta(minutes=5),
+            # 'get_ticker_task': {
+            #     'task': 'ticker.tasks.get_ticker_task',
+            #     'schedule': timedelta(seconds=30),
+            # },
+            'process_month_avg_task': {
+                'task': 'ticker.tasks.process_month_avg_task',
+                'schedule': timedelta(seconds=300),
             },
         }
 # ######### END CELERY

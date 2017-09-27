@@ -10,7 +10,7 @@ import os, sys
 
 proj_path = "/Users/radekj/devroot/joebot/joebot_at"
 # This is so Django knows where to find stuff.
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 sys.path.append(proj_path)
 
 # This is so my local_settings.py gets loaded.
@@ -25,7 +25,6 @@ matplotlib.use('TkAgg')   # use for OSX
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
-import statsmodels.api as sm
 from datetime import datetime, timedelta
 import matplotlib.dates as mdates
 from ticker.strategies.base import BaseStrategy
@@ -56,6 +55,9 @@ def get_color(arr):
 
 class MonthAverageStrategy(BaseStrategy):
 
+    def read_data(self, dt_from, days=30):
+        return super(MonthAverageStrategy, self).read_data(dt_from, days=days)
+
     def get_precolor(self, row):
         return -1 if row.close < row.ema_hour else 1
 
@@ -70,8 +72,16 @@ class MonthAverageStrategy(BaseStrategy):
     def get_color(self, row):
         return 1 if row.ema_hour_trend > 0 else -1
 
+    def get_deep(self, row):
+        return int(100 * row['close'] / row['ema_month']) - 100   # -100% .. 0 .. +100%
 
-    def calculate_signal(self, is_print=False):
+    def is_price_low(self, row):
+        return row['close'] < row['ema_month_down']
+
+    def is_price_high(self, row):
+        return row['close'] > row['ema_month_up']
+
+    def prepare_data(self):
         """
         Calculating all helper data columns
         Mostly based on exponential weighted mean and other rolling functions
@@ -79,19 +89,34 @@ class MonthAverageStrategy(BaseStrategy):
         """
         self.market_data['jDate'] = self.market_data.index.to_julian_date()
         self.market_data['ema_hour'] = self.market_data['close'].ewm(span=12, adjust=False).mean()
-        self.market_data['ema_hour_trend'] = self.market_data['ema_hour'].rolling(window=3, center=False).apply(func=lambda x: get_trend(x))
-        self.market_data['ema_day'] = self.market_data['close'].ewm(span=self.prices_in_a_day, adjust=False).mean()
-        self.market_data['ema_day_trend'] = self.market_data['ema_day'].rolling(window=3, center=False).apply(func=lambda x: get_trend(x))
-        self.market_data['ema_week'] = self.market_data['close'].ewm(span=self.prices_in_a_day * 7, adjust=False).mean()
-        self.market_data['ema_month'] = self.market_data['close'].ewm(span=self.prices_in_a_day * 30, adjust=False).mean()
+        self.market_data['ema_hour_trend'] = self.market_data['ema_hour'].rolling(
+            window=3, center=False).apply(func=lambda x: get_trend(x))
+
+        self.market_data['ema_day'] = self.market_data['close'].ewm(
+            span=self.prices_in_a_day, adjust=False).mean()
+
+        self.market_data['ema_day_trend'] = self.market_data['ema_day'].rolling(
+            window=3, center=False).apply(func=lambda x: get_trend(x))
+
+        self.market_data['ema_week'] = self.market_data['close'].ewm(
+            span=self.prices_in_a_day * 7, adjust=False).mean()
+
+        self.market_data['ema_month'] = self.market_data['close'].ewm(
+            span=self.prices_in_a_day * 30, adjust=False).mean()
+
+        self.market_data['deep'] = self.market_data.apply(self.get_deep, axis=1)
         self.market_data['ema_month_down'] = self.market_data['ema_month'] * 0.90
         self.market_data['ema_month_up'] = self.market_data['ema_month'] * 1.05
-        self.market_data['trend_1h'] = self.market_data['close'].rolling(window=12, center=False).apply(func=lambda x: get_trend(x))
-        self.market_data['trend_30min'] = self.market_data['close'].rolling(window=6, center=False).apply(func=lambda x: get_trend(x))
-        self.market_data['trend_15min'] = self.market_data['close'].rolling(window=3, center=False).apply(func=lambda x: get_trend(x))
+
+        self.market_data['trend_1h'] = self.market_data['close'].rolling(
+            window=12, center=False).apply(func=lambda x: get_trend(x))
+        self.market_data['trend_30min'] = self.market_data['close'].rolling(
+            window=6, center=False).apply(func=lambda x: get_trend(x))
+        self.market_data['trend_15min'] = self.market_data['close'].rolling(
+            window=3, center=False).apply(func=lambda x: get_trend(x))
+
         self.market_data['max_15min'] = self.market_data['close'].rolling(window=3).max()
         self.market_data['color'] = self.market_data.apply(self.get_color, axis=1)
-        return super(MonthAverageStrategy, self).calculate_signal(is_print)
 
     def get_signal_buy(self, row):
         """ Handle BUY conditions """
@@ -126,8 +151,6 @@ class MonthAverageStrategy(BaseStrategy):
         plt.plot(self.market_data.index, self.market_data['ema_month'], color='yellow')
         plt.plot(self.market_data.index, self.market_data['ema_month_down'], color='gray')
         plt.plot(self.market_data.index, self.market_data['ema_month_up'], color='gray')
-
-
 
     def draw_color_line(self, ax, data_col_name, factor_col_name):
         # convert dates to numbers first
@@ -192,13 +215,36 @@ class MonthAverageStrategy(BaseStrategy):
         print('read_data.. done ')
         self.bad_buy_limit = Decimal('0.97')
 
-        self.calculate_signal(True)
+        self.calculate_all_signals(True)
         print(self.trader.balance)
         self.draw_graph()
+
+    def check_for_trading(self):
+        dt_from = datetime.utcnow()
+        self.read_data(dt_from)
+        self.calculate_last_price_only()
+        last_row = self.market_data.tail(1)
+        if self.can_buy:  # have money
+            last_row = self.market_data.tail(1)
+            if self.is_price_low(last_row):
+                # BUY
+                if self.get_signal_buy(last_row):
+                    self.notify('BUY', last_row)
+                    return True
+
+        if self.can_sell:  # have coins
+            last_row = self.market_data.tail(1)
+            if self.is_price_high(last_row):
+                # SELL
+                if self.get_signal_sell(last_row):
+                    self.notify('SELL', last_row)
+                    return True
+        self.notify('NOTHING', last_row)
+        return True
 
 
 if __name__ == "__main__":
     # dt_from = datetime.strptime('2017-08-30 9:40:00', '%Y-%m-%d %H:%M:%S')
     dt_from = datetime.utcnow()
-    s = MonthAverageStrategy('BTC_ZEC')
+    s = MonthAverageStrategy('BTC_BCH')
     s.start_from(dt_from, days=65)

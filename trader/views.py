@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.views.generic import DetailView, ListView
 from datetime import datetime, timedelta
 
-from trader.models import Trade, BTCTrader
+from trader.models import Trade
 from ticker.strategies.simple import SimpleStrategy
 import logging
 
