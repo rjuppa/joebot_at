@@ -64,4 +64,4 @@ Quandl==3.2.0
 autobahn==17.8.1
 ratelimiter==1.2.0
 
--e git+git@github.com:s4w3d0ff/python-poloniex.git#egg=python-poloniex
+# -e git+git@github.com:s4w3d0ff/python-poloniex.git#egg=python-poloniex
