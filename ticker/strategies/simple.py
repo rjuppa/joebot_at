@@ -8,7 +8,7 @@ from decimal import Decimal
 
 import os, sys
 
-proj_path = "/Users/radekj/devroot/joebot/joebot_at"
+proj_path = "/home/radekj/devroot/joebot_at"
 # This is so Django knows where to find stuff.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 sys.path.append(proj_path)
