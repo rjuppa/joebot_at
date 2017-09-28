@@ -184,9 +184,8 @@ class BaseStrategy(object):
     def write_log(self, line):
         path = '{}/{}.txt'.format(self.dir_log, self.market)
         mode = 'a' if os.path.exists(path) else 'w'
-        hs = open(path, mode)
-        hs.write(line + '\n')
-        hs.close()
+        with open(path, mode) as f:
+            f.write(line + '\n')
 
     def draw_line(self):
             pass
