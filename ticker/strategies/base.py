@@ -1,4 +1,3 @@
-import json
 import requests
 import numpy as np
 import pandas as pd
@@ -62,8 +61,7 @@ class BaseStrategy(object):
                                                                      self.market,
                                                                      self.ts_start, self.ts_current)
         response = requests.get(url)
-        pp(response.content)
-        data = json.loads(response.content)  # data
+        data = response.json()  # data
         if not isinstance(data, list):
             print(url)
             print('Http Status:{} - {}'.format(response.status_code, response.content[:80]))
