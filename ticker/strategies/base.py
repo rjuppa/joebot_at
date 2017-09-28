@@ -1,3 +1,4 @@
+import os
 import requests
 import numpy as np
 import pandas as pd
@@ -176,7 +177,9 @@ class BaseStrategy(object):
                                                                       price, type, status))
 
     def write_log(self, line):
-        hs = open('logs/{}.txt'.format(self.market), "a+")
+        path = 'logs/{}.txt'.format(self.market)
+        mode = 'a' if os.path.exists(path) else 'w'
+        hs = open(path, mode)
         hs.write(line + '\n')
         hs.close()
 
