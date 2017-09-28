@@ -39,11 +39,16 @@ class BaseStrategy(object):
     trade_min_amount_btc = Decimal('0.02')  # 0.02BTC
     available_btc = Decimal('0.0')
     available_coin = Decimal('0.0')
+    dir_log = 'logs'
 
     def __init__(self, market):
         self.market = market
         self.trader = BTCTrader(market)
         self.trader.clear_market(deposit_btc=0.2)
+
+        # check if dir. logs/ exists
+        if not os.path.exists(self.dir_log):
+            os.makedirs(self.dir_log)
 
     def load_data(self, data):
         dates = [convert_ts(row['date']) for row in data]
@@ -177,7 +182,7 @@ class BaseStrategy(object):
                                                                       price, type, status))
 
     def write_log(self, line):
-        path = 'logs/{}.txt'.format(self.market)
+        path = '{}/{}.txt'.format(self.dir_log, self.market)
         mode = 'a' if os.path.exists(path) else 'w'
         hs = open(path, mode)
         hs.write(line + '\n')
