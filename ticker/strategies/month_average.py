@@ -7,8 +7,9 @@ from tabulate import tabulate
 from decimal import Decimal
 
 import os, sys
+from os.path import dirname, realpath
+proj_path = dirname(dirname(dirname(realpath(__file__))))
 
-proj_path = "/Users/radekj/devroot/joebot/joebot_at"
 # This is so Django knows where to find stuff.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 sys.path.append(proj_path)

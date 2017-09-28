@@ -62,6 +62,7 @@ class BaseStrategy(object):
                                                                      self.market,
                                                                      self.ts_start, self.ts_current)
         response = requests.get(url)
+        pp(response.content)
         data = json.loads(response.content)  # data
         if not isinstance(data, list):
             print(url)
