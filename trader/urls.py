@@ -2,7 +2,8 @@
 # Copyright 2016-2017 LANshark Consulting Group, LLC. All Rights Reserved.
 from django.conf.urls import url
 
-from . import views
+from trader import views
+
 
 urlpatterns = [
     # trades

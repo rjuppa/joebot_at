@@ -14,7 +14,23 @@ TRADE_TYPES = (
     (SELL, 'SELL'),
 )
 
-MARKETS = [('BTC_BCH', 'BTC_BCH'), ('BTC_ETH', 'BTC_ETH'), ('BTC_DASH', 'BTC_DASH'),]
+MARKETS = [('BTC_BCH', 'BTC_BCH'),
+           ('BTC_ETH', 'BTC_ETH'),
+           ('BTC_LTC', 'BTC_LTC'),
+           ('BTC_ZEC', 'BTC_ZEC'),
+           ('BTC_XRP', 'BTC_XRP'),
+           ('BTC_STR', 'BTC_STR'),
+           ('BTC_XMR', 'BTC_XMR'),
+           ('BTC_GNO', 'BTC_GNO'),
+           ('BTC_STRAT', 'BTC_STRAT'),
+           ('BTC_DASH', 'BTC_DASH'),]
+
+
+def get_coin_labels():
+    labels = ['BTC']
+    for m in MARKETS:
+        labels.append(str(m[0])[4:])
+    return labels
 
 
 @python_2_unicode_compatible

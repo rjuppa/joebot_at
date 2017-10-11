@@ -170,9 +170,10 @@ class API:
             if 'self' in uri:
                 del uri['self']
             uri['command'] = api_details[2]
-            if api_details[2] == 'post':
+            if api_details[1] == 'post':
                 uri['nonce'] = int(time.time() * 1000)
-                sign = hmac.new(api_details[3]['secret'], uri, hashlib.sha512).hexdigest()
+                paybytes = urllib.parse.urlencode(uri).encode('utf8')
+                sign = hmac.new(api_details[3]['secret'], paybytes, hashlib.sha512).hexdigest()
                 headers['Sign'] = sign
                 headers['Key'] = api_details[3]['api_key']
             return json.loads(request(api_details[0], uri, headers=headers).content.decode())

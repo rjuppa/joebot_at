@@ -8,7 +8,10 @@ from decimal import Decimal
 
 import os, sys
 
-proj_path = "/home/radekj/devroot/joebot_at"
+import os, sys
+from os.path import dirname, realpath
+proj_path = dirname(dirname(dirname(realpath(__file__))))
+
 # This is so Django knows where to find stuff.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 sys.path.append(proj_path)
