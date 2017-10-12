@@ -1,6 +1,5 @@
 import json
 import requests
-import decimal
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
@@ -224,22 +223,23 @@ class MonthAverageStrategy(BaseStrategy):
         dt_from = datetime.utcnow()
         self.read_data(dt_from)
         self.calculate_last_price_only()
-        last_row = self.market_data.tail(1)
-        if self.can_buy:  # have money
-            last_row = self.market_data.tail(1)
+        last_row = self.market_data.iloc[-1]    # last row
+        price = Decimal(str(last_row.close))
+        if self.can_sell(price):
+            # have coins
+            if self.is_price_high(last_row):
+                # SELL
+                if self.get_signal_sell(last_row):
+                    self.notify('SELL', last_row)
+                    return True
+        else:
+            # have money
             if self.is_price_low(last_row):
                 # BUY
                 if self.get_signal_buy(last_row):
                     self.notify('BUY', last_row)
                     return True
 
-        if self.can_sell:  # have coins
-            last_row = self.market_data.tail(1)
-            if self.is_price_high(last_row):
-                # SELL
-                if self.get_signal_sell(last_row):
-                    self.notify('SELL', last_row)
-                    return True
         self.notify('NOTHING', last_row)
         return True
 
@@ -247,5 +247,6 @@ class MonthAverageStrategy(BaseStrategy):
 if __name__ == "__main__":
     # dt_from = datetime.strptime('2017-08-30 9:40:00', '%Y-%m-%d %H:%M:%S')
     dt_from = datetime.utcnow()
-    s = MonthAverageStrategy('BTC_BCH')
+    s = MonthAverageStrategy('BTC_ETH')
+    # s.check_for_trading()
     s.start_from(dt_from, days=65)

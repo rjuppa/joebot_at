@@ -100,17 +100,23 @@ class Wallet(models.Model):
     # balance: 0.2 -0.123  +0.130 = 0.207
     def balance_from(self):
         dic_sell = self.trades_from.filter(type=SELL, market__startswith=self.symbol).aggregate(Sum('amount_sell'))  # BTC
-        dic_buy = self.trades_to.filter(type=BUY, market__startswith=self.symbol).aggregate(Sum('amount_sell'))
+        dic_buy = self.trades_from.filter(type=BUY, market__startswith=self.symbol).aggregate(Sum('amount_sell'))
         amount_sell = dic_sell['amount_sell__sum'] if dic_sell and dic_sell['amount_sell__sum'] else Decimal('0.0')
         amount_buy = dic_buy['amount_sell__sum'] if dic_buy and dic_buy['amount_sell__sum'] else Decimal('0.0')
-        return Decimal(amount_sell) + Decimal(amount_buy)
+        return amount_sell + amount_buy
 
     def balance_to(self):
-        dic_sell = self.trades_from.filter(type=SELL, market__endswith=self.symbol).aggregate(Sum('amount_buy'))  # BTC
+        dic_sell = self.trades_to.filter(type=SELL, market__endswith=self.symbol).aggregate(Sum('amount_buy'))  # BTC
         dic_buy = self.trades_to.filter(type=BUY, market__endswith=self.symbol).aggregate(Sum('amount_buy'))
         amount_sell = dic_sell['amount_buy__sum'] if dic_sell and dic_sell['amount_buy__sum'] else Decimal('0.0')
         amount_buy = dic_buy['amount_buy__sum'] if dic_buy and dic_buy['amount_buy__sum'] else Decimal('0.0')
-        return Decimal(amount_sell) + Decimal(amount_buy)
+        return amount_sell + amount_buy
+
+    def get_balance(self):
+        if self.symbol == 'BTC':
+            return self.balance_from()
+        else:
+            return self.balance_to()
 
 
 @python_2_unicode_compatible

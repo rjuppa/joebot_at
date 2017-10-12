@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 import matplotlib.dates as mdates
 from pandas.core.dtypes.common import PeriodDtype
 
-from trader.btc_trader import BTCTrader
+from trader.btc_trader import BTCTrader, BUY, SELL
 from pprint import pprint as pp
 
 
@@ -44,7 +44,7 @@ class BaseStrategy(object):
     def __init__(self, market):
         self.market = market
         self.trader = BTCTrader(market)
-        self.trader.clear_market(deposit_btc=0.2)
+        # self.trader.clear_market(deposit_btc=0.2)
 
         # check if dir. logs/ exists
         if not os.path.exists(self.dir_log):
@@ -106,38 +106,35 @@ class BaseStrategy(object):
     def execute_buy(self, row):
         price = Decimal(str(row.close))
         self.available_btc = self.trader.get_balance_btc()
-        if self.available_btc > self.trade_amount_btc:
-            amount_btc = self.available_btc #self.trade_amount_btc
-        else:
-            amount_btc = self.available_btc
-
-        if amount_btc > self.trade_min_amount_btc:
+        if self.available_btc > self.trade_min_amount_btc:
             # buy if have btc
-            amount = amount_btc / price
-            self.trader.buy(price, amount)
-            self.available_btc = self.trader.get_balance_btc()
-            self.available_coin = self.trader.get_balance_coin()
-            if self.do_print:
-                self._print_trade(row)
-            return 1
+            last = self.trader.get_last_trade()
+            if not last or last.type == SELL:
+                amount_btc = self.trade_amount_btc
+                amount = amount_btc / price
+                self.trader.buy(price, amount)
+                self.available_btc = self.trader.get_balance_btc()
+                self.available_coin = self.trader.get_balance_coin()
+                if self.do_print:
+                    self._print_trade(row)
+                return 1
         return 0
 
     def execute_sell(self, row):
         price = Decimal(str(row.close))
         self.available_coin = self.trader.get_balance_coin()
-        if (self.available_coin * price) > self.trade_amount_btc:
-            amount = self.available_coin #self.trade_amount_btc / price
-        else:
-            amount = self.available_coin
-
-        if amount * price > self.trade_min_amount_btc:
+        if self.available_coin * price > self.trade_min_amount_btc:
             # sell if have coins
-            self.trader.sell(price, amount)
-            self.available_btc = self.trader.get_balance_btc()
-            self.available_coin = self.trader.get_balance_coin()
-            if self.do_print:
-                self._print_trade(row)
-            return -1
+            print(self.available_coin * price)
+            last = self.trader.get_last_trade()
+            if not last or last.type == BUY:
+                amount = self.available_coin
+                self.trader.sell(price, amount)
+                self.available_btc = self.trader.get_balance_btc()
+                self.available_coin = self.trader.get_balance_coin()
+                if self.do_print:
+                    self._print_trade(row)
+                return -1
         return 0
 
     def get_signal_buy(self, row):
@@ -148,32 +145,26 @@ class BaseStrategy(object):
         """ Handle SELL conditions """
         return 0     # TODO
 
-    @property
-    def can_buy(self):
-        return self.available_btc > 0   # we have btc
-
-    @property
-    def can_sell(self):
-        return self.available_coin > 0  # we have coins
+    def can_sell(self, price):
+        return self.available_coin * price > self.trade_min_amount_btc  # we have coins
 
     def get_signal(self, row):
         """ Processes signal for a row """
         self.available_btc = self.trader.get_balance_btc()
         self.available_coin = self.trader.get_balance_coin()
-        # BUY
-        if self.can_buy:
+
+        price = Decimal(str(row.close))
+        if self.can_sell(price):
+            # SELL
+            return self.get_signal_sell(row)
+        else:
+            # BUY
             return self.get_signal_buy(row)
 
-        # SELL
-        if self.can_sell:
-            return self.get_signal_sell(row)
-
-        return 0
-
     def notify(self, type, row):
-        price = '{:4.8f}'.format(row['close'].values[0])
-        deep = row['deep'].values[0]
-        date = datetime.fromtimestamp(int(row['date'].values[0])).strftime('%Y-%m-%d %H:%M:%S')
+        price = '{:4.8f}'.format(row['close'])
+        deep = row['deep']
+        date = datetime.fromtimestamp(int(row['date'])).strftime('%Y-%m-%d %H:%M:%S')
         if type == 'NOTHING':
             self.write_log('{}|{}|{} |{}%'.format(date, self.trader.market, price, deep))
         else:
