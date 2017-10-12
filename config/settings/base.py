@@ -63,6 +63,7 @@ LOCAL_APPS = [
     'joebot_at.users.apps.UsersConfig',
     'trader',
     'ticker',
+    'chatbot'
 ]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -293,6 +294,11 @@ CELERY_BEAT_SCHEDULE = {
         }
 # ######### END CELERY
 
+
+# TELEGRAM
+TELEGRAM_TOKEN = ''
+TELEGRAM_URL = "https://api.telegram.org/bot{}/".format(TELEGRAM_TOKEN)
+TELEGRAM_CHAT_ID = ''
 
 # Location of root django.contrib.admin URL, use {% url 'admin:index' %}
 ADMIN_URL = r'^admin/'

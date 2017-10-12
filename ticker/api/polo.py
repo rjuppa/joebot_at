@@ -159,7 +159,8 @@ class API:
         return self._call(sys._getframe().f_code.co_name, locals())
 
     def _call(self, topic: str, args: dict() = {}):
-        if topic in ['returnTicker', 'return24Volume', 'returnOrderBook', 'returnTradeHistory', 'returnChartData', 'returnCurrencies', 'returnLoanOrders']:
+        if topic in ['returnTicker', 'return24Volume', 'returnOrderBook', 'returnTradeHistory',
+                     'returnChartData', 'returnCurrencies', 'returnLoanOrders']:
             api = [self.public_url, 'get', topic]
         else:
             api = [self.private_url, 'post', topic, self.secrets]

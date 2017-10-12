@@ -1,6 +1,9 @@
 from .models import *
+from chatbot.models import Message
+from chatbot.bot import MessageBot
 
 ZERO = Decimal('0.0')
+
 
 class BTCTrader(object):
 
@@ -84,6 +87,8 @@ class BTCTrader(object):
         trade.fee = price * amount * self.exchange.fee
         trade.amount_usd = trade.amount_sell * 4000
         trade.save()
+        text = self.market + ' Executed BUY@{}'
+        self.send_telegram(text, price)
 
     def sell(self, price, amount):
         if isinstance(price, (float,)):
@@ -99,6 +104,8 @@ class BTCTrader(object):
         trade.fee = price * amount * self.exchange.fee
         trade.amount_usd = trade.amount_sell * 4000
         trade.save()
+        text = self.market + ' Executed SELL@{}'
+        self.send_telegram(text, price)
 
     def get_balance_btc(self):
         qs = Trade.objects.filter(market__startswith=self.sym_from)
@@ -125,3 +132,14 @@ class BTCTrader(object):
     def balance(self):
         return '{} {}  ({} {})'.format(self.get_balance_btc(), self.sym_from,
                                        self.get_balance_coin(), self.sym_to,)
+
+    def get_last_message(self):
+        return Message.objects.filter(market=self.market).last()
+
+    def send_telegram(self, text, price):
+        last = self.get_last_message()
+        if text != last:
+            bot = MessageBot()
+            bot.send_message_to_me(text.format(price))
+            msg = Message(market=self.market, text=text, price=price, incoming=False)
+            msg.save()
