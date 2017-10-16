@@ -222,6 +222,8 @@ class MonthAverageStrategy(BaseStrategy):
     def check_for_trading(self):
         dt_from = datetime.utcnow()
         self.read_data(dt_from)
+        self.available_btc = self.trader.get_balance_btc()
+        self.available_coin = self.trader.get_balance_coin()
         self.calculate_last_price_only()
         last_row = self.market_data.iloc[-1]    # last row
         price = Decimal(str(last_row.close))
@@ -247,6 +249,6 @@ class MonthAverageStrategy(BaseStrategy):
 if __name__ == "__main__":
     # dt_from = datetime.strptime('2017-08-30 9:40:00', '%Y-%m-%d %H:%M:%S')
     dt_from = datetime.utcnow()
-    s = MonthAverageStrategy('BTC_ETH')
+    s = MonthAverageStrategy('BTC_STR')
     # s.check_for_trading()
     s.start_from(dt_from, days=65)
